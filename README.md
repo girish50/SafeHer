@@ -2,7 +2,7 @@
 
 A full-stack + AI/logic major project combining **safer route recommendation**, **live trip monitoring**, and **emergency alert workflows** into a single safety-assist platform.
 
-🌐 **Live Demo:** [https://safeher-gules.vercel.app](https://safeher-gules.vercel.app)
+🌐 **Live Demo:** [SafeHer Web App](https://safeher-gules.vercel.app)
 
 ---
 
@@ -20,9 +20,9 @@ docker compose up --build
 
 | Service  | URL                                                |
 | -------- | -------------------------------------------------- |
-| Web app  | [safeher-gules.vercel.app](https://safeher-gules.vercel.app) |
-| API docs | [safeher-backend-f8ti.onrender.com/docs](https://safeher-backend-f8ti.onrender.com/docs) |
-| API      | [safeher-backend-f8ti.onrender.com/api/](https://safeher-backend-f8ti.onrender.com/api/) |
+| Web app  | [Open Web Application](https://safeher-gules.vercel.app) |
+| API docs | [View Interactive API Docs](https://safeher-backend-f8ti.onrender.com/docs) |
+| API      | [Access API Endpoint](https://safeher-backend-f8ti.onrender.com/api/) |
 
 ### Demo credentials
 
