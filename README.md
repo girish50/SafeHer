@@ -185,9 +185,77 @@ safeher/
    ```bash
    uvicorn app.main:app --reload --port 8000
    ```
-   The backend will be available at `http://localhost:8000` with documentation at `http://localhost:8000/docs`.
+    The backend will be available at `http://localhost:8000` with documentation at `http://localhost:8000/docs`.
+
+### Database Configuration & Administration
+
+To set up the database locally and check the table contents, follow these instructions:
+
+#### 1. Create the Local PostgreSQL Database
+If you have PostgreSQL installed locally on your system, open your terminal (or pgAdmin SQL shell) and execute:
+```sql
+-- Connect to the default 'postgres' database first, then run:
+CREATE DATABASE safeher_db;
+CREATE USER safeher_user WITH PASSWORD 'safeher123';
+GRANT ALL PRIVILEGES ON DATABASE safeher_db TO safeher_user;
+
+-- Connect to safeher_db and grant schema access:
+\c safeher_db
+GRANT ALL ON SCHEMA public TO safeher_user;
+```
+*Note: Make sure your `.env` connection string matches: `DATABASE_URL=postgresql://safeher_user:safeher123@localhost:5432/safeher_db`*
+
+Alternatively, you can start a PostgreSQL database instantly using Docker:
+```bash
+docker run -d --name safeher-db -e POSTGRES_USER=safeher_user -e POSTGRES_PASSWORD=safeher123 -e POSTGRES_DB=safeher_db -p 5432:5432 postgres:16-alpine
+```
+
+#### 2. Run Database Seeding
+When you run the seed script:
+```bash
+python -m app.seed
+```
+It automatically initializes the tables (using SQLAlchemy `Base.metadata.create_all`) and populates the default records.
+
+#### 3. Inspect Tables & Retrieve Data (via CLI)
+Connect to the database using the PostgreSQL command-line interface (`psql`):
+```bash
+psql -U safeher_user -d safeher_db -h localhost
+```
+*(Enter the password `safeher123` when prompted)*
+
+Once connected, execute these commands inside the `psql` shell to check your data:
+* **List all generated tables:**
+  ```sql
+  \dt
+  ```
+* **Verify seeded admins:**
+  ```sql
+  SELECT admin_id, name, email FROM admins;
+  ```
+* **Verify seeded risk zones:**
+  ```sql
+  SELECT zone_id, zone_name, risk_level, crime_score FROM risk_zones;
+  ```
+* **Verify emergency support points:**
+  ```sql
+  SELECT support_id, support_name, support_type FROM emergency_support_points;
+  ```
+* **Check registered users:**
+  ```sql
+  SELECT user_id, full_name, email, phone FROM users;
+  ```
+* **Check recent active trips:**
+  ```sql
+  SELECT trip_id, user_id, source_text, destination_text, trip_status FROM trips;
+  ```
+* **Exit the psql shell:**
+  ```sql
+  \q
+  ```
 
 ---
+
 
 ### Frontend Setup (React + Vite)
 
