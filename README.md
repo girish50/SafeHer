@@ -1,207 +1,256 @@
 # SafeHer — Women Safety Route & Emergency Alert Platform
 
-A full-stack + AI/logic major project combining **safer route recommendation**, **live trip monitoring**, and **emergency alert workflows** into a single safety-assist platform.
+A modern, full-stack safety-assist platform that leverages a **dynamic risk-scoring engine** to recommend safer routes, monitors active trips in real time, and orchestrates automated emergency workflows.
 
-🌐 **Live Demo:** [SafeHer Web App](https://safeher-gules.vercel.app)
-
----
-
-## Quick Start (Docker — recommended)
-
-### Prerequisites
-
-- Docker ≥ 24 and Docker Compose ≥ 2
-
-```bash
-git clone <this-repo>
-cd safeher
-docker compose up --build
-```
-
-| Service  | URL                                                |
-| -------- | -------------------------------------------------- |
-| Web app  | [Open Web Application](https://safeher-gules.vercel.app) |
-| API docs | [View Interactive API Docs](https://safeher-backend-f8ti.onrender.com/docs) |
-| API      | [Access API Endpoint](https://safeher-backend-f8ti.onrender.com/api/) |
-
-### Demo credentials
-
-| Role  | Email                 | Password    |
-| ----- | --------------------- | ----------- |
-| Admin | admin@safeher.demo    | Admin@12345 |
-| User  | register at /register | your choice |
+🌐 **Live Web Application:** [Open SafeHer Web App](https://safeher-gules.vercel.app)  
+⚙️ **Production API:** [Access API Endpoint](https://safeher-backend-f8ti.onrender.com/api/) | [Interactive Swagger Docs](https://safeher-backend-f8ti.onrender.com/docs)  
+📦 **GitHub Repository:** [girish50/SafeHer](https://github.com/girish50/SafeHer)
 
 ---
 
-## Manual / Local Development
-
-### Backend (FastAPI + PostgreSQL)
-
-```bash
-cd backend
-
-# 1. Create a virtual environment
-python -m venv venv && venv\Scripts\activate
-pip install --upgrade psycopg2-binary
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Set environment variables
-export DATABASE_URL="postgresql://safeher:safeher_pass@localhost:5432/safeher_db"
-export SECRET_KEY="your-secret-key"
-
-# 4. Run PostgreSQL (or use Docker just for the DB)
-docker run -d --name safeher-db \
-  -e POSTGRES_USER=safeher \
-  -e POSTGRES_PASSWORD=safeher_pass \
-  -e POSTGRES_DB=safeher_db \
-  -p 5432:5432 postgres:16-alpine
-
-# 5. Seed the database (demo admin + risk zones + support points)
-python -m app.seed
-
-# 6. Start the server
-uvicorn app.main:app --reload --port 8000
-```
-
-### Frontend (React + Vite)
-
-```bash
-cd frontend
-npm install
-# For local dev (backend on port 8000):
-VITE_API_URL=http://localhost:8000 
-npm run dev
-# Open http://localhost:5173
-```
+## Table of Contents
+- [Core Features](#core-features)
+- [System Architecture](#system-architecture)
+- [Project Directory Structure](#project-directory-structure)
+- [Manual Local Development](#manual-local-development)
+  - [Prerequisites](#prerequisites)
+  - [Backend Setup (FastAPI)](#backend-setup-fastapi)
+  - [Frontend Setup (React + Vite)](#frontend-setup-react--vite)
+- [Quick Start with Docker](#quick-start-with-docker)
+- [Route Risk Hashing & Scoring Engine](#route-risk-hashing--scoring-engine)
+- [Limitations & Future Roadmap](#limitations--future-roadmap)
 
 ---
 
-## Project Architecture
+## Core Features
+
+### 👤 User Workflows
+* **Safer Route Recommendation:** Input starting points and destinations on an interactive map. The engine calculates and highlights the lowest-risk route.
+* **Live Trip Monitoring:** Simulates real-time GPS coordinates along the selected route with integrated safety checks.
+* **Route Deviation Detection:** Triggers an alert sequence if the user drifts more than 250 meters from the planned route.
+* **Prolonged Stop Detection:** Monitors stationary states and triggers safety prompts if inactive for more than 8 minutes during a trip.
+* **Interactive SOS Trigger:** A persistent, floating SOS button that initiates an immediate emergency broadcast.
+* **Trusted Contacts Directory:** Manage emergency contacts to receive simulated alerts.
+* **Trip & Alert History:** Log files tracking historical routing risk indexes and security alert occurrences.
+
+### 🛡️ Admin Dashboard
+* **Real-time Analytics:** Visual KPIs tracking active trips, registered users, and system-wide alert frequency.
+* **Dynamic Risk Zone Management:** Complete CRUD interface to create and modify high-risk coordinate boundaries.
+* **Emergency Support Directory:** Manage emergency support coordinates (e.g., Police Outposts, Hospitals, Safe Havens) rendered on the user-facing map.
+
+---
+
+## System Architecture
+
+```mermaid
+graph TD
+    User([User Browser]) -->|React UI| Frontend[React + Leaflet Frontend]
+    Admin([Admin Browser]) -->|React UI| Frontend
+    Frontend -->|HTTP / JSON| API[FastAPI Gateway]
+    API -->|ORM| DB[(PostgreSQL Database)]
+    API -->|Risk Analysis| Engine[Route Risk Scoring Engine]
+    API -->|Workflows| Alert[Emergency Alert Dispatcher]
+```
+
+* **Frontend:** Single Page Application (SPA) powered by React 18, React Router v6, Leaflet Maps, and custom responsive styling.
+* **Backend:** REST API powered by FastAPI (Python 3.11) with automated OpenAPI documentation generation.
+* **Database:** PostgreSQL 16 managed via SQLAlchemy 2.0 ORM.
+* **Auth:** Secure JWT-based session token authentication with bcrypt password hashing.
+
+---
+
+## Project Directory Structure
 
 ```
 safeher/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # FastAPI app entry
-│   │   ├── database.py          # SQLAlchemy engine / session
-│   │   ├── seed.py              # Demo data seeder
 │   │   ├── core/
-│   │   │   └── security.py      # JWT auth, password hashing
-│   │   ├── models/              # SQLAlchemy ORM models
-│   │   │   ├── user.py
+│   │   │   └── security.py      # JWT authentication & bcrypt hashing
+│   │   ├── models/              # SQLAlchemy database ORM models
 │   │   │   ├── admin.py
+│   │   │   ├── alert.py
+│   │   │   ├── risk_zone.py
+│   │   │   ├── trip.py
 │   │   │   ├── trusted_contact.py
-│   │   │   ├── trip.py          # Trip, TripRoute, TrackingPoints, Events
-│   │   │   ├── alert.py         # Alert, AlertRecipient
-│   │   │   └── risk_zone.py     # RiskZone, EmergencySupportPoint
-│   │   ├── schemas/             # Pydantic request/response schemas
-│   │   ├── routers/             # FastAPI route handlers
+│   │   │   └── user.py
+│   │   ├── routers/             # FastAPI endpoint route controllers
+│   │   │   ├── admin.py
+│   │   │   ├── alerts.py
 │   │   │   ├── auth.py
 │   │   │   ├── contacts.py
-│   │   │   ├── trips.py         # Route planning + trip monitoring
-│   │   │   ├── alerts.py        # SOS + alert history
 │   │   │   ├── support_points.py
-│   │   │   └── admin.py         # Admin CRUD + analytics
-│   │   └── services/
-│   │       ├── risk_engine.py   # ★ Route risk scoring engine (AI/logic core)
-│   │       └── alert_service.py # Emergency alert delivery
-│   ├── requirements.txt
-│   └── Dockerfile
+│   │   │   └── trips.py
+│   │   ├── schemas/             # Pydantic validation & data serializer schemas
+│   │   │   ├── admin.py
+│   │   │   ├── alert.py
+│   │   │   ├── contact.py
+│   │   │   ├── trip.py
+│   │   │   └── user.py
+│   │   ├── services/            # Logical core services
+│   │   │   ├── alert_service.py # SOS dispatch and notification workflows
+│   │   │   └── risk_engine.py   # AI/logic scoring engine for safe routing
+│   │   ├── database.py          # SQLAlchemy engine & session manager
+│   │   ├── main.py              # Application entrypoint & CORS config
+│   │   └── seed.py              # Seeding script for admin and support markers
+│   ├── Dockerfile
+│   └── requirements.txt         # Pinned python dependencies
 ├── frontend/
+│   ├── public/
 │   ├── src/
-│   │   ├── pages/               # All user + admin pages
-│   │   ├── components/          # Layout, RiskBadge, RiskDial
-│   │   ├── context/             # Auth + Toast context providers
-│   │   └── api/client.js        # Axios instances
-│   ├── nginx.conf               # SPA + API proxy config
-│   └── Dockerfile
-└── docker-compose.yml
+│   │   ├── api/
+│   │   │   └── client.js        # Axios instance configured with tokens
+│   │   ├── components/          # Reusable layout UI components
+│   │   │   ├── AdminLayout.jsx
+│   │   │   ├── Layout.jsx
+│   │   │   ├── RiskBadge.jsx
+│   │   │   └── RiskDial.jsx
+│   │   ├── context/             # Global Contexts (Auth, UI Toast notifications)
+│   │   │   ├── AuthContext.jsx
+│   │   │   └── ToastContext.jsx
+│   │   ├── pages/               # Routed pages for User & Admin dashboards
+│   │   │   ├── admin/
+│   │   │   │   ├── AdminAlerts.jsx
+│   │   │   │   ├── AdminDashboard.jsx
+│   │   │   │   ├── AdminLogin.jsx
+│   │   │   │   ├── AdminRiskZones.jsx
+│   │   │   │   └── AdminSupportPoints.jsx
+│   │   │   ├── ActiveTrip.jsx
+│   │   │   ├── AlertHistory.jsx
+│   │   │   ├── EmergencySupport.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── PlanTrip.jsx
+│   │   │   ├── Profile.jsx
+│   │   │   ├── Register.jsx
+│   │   │   ├── RouteOptions.jsx
+│   │   │   ├── TripHistory.jsx
+│   │   │   └── TrustedContacts.jsx
+│   │   ├── App.jsx              # Main routing hub
+│   │   ├── index.css            # Base styles & CSS design tokens
+│   │   └── main.jsx
+│   ├── Dockerfile
+│   ├── nginx.conf               # SPA rewrite rules for production
+│   ├── package.json
+│   └── vercel.json              # Vercel deployment rewrite rules
+└── docker-compose.yml           # Local multi-container development configuration
 ```
 
 ---
 
-## Key Features
+## Manual Local Development
 
-### User-facing
+### Prerequisites
+* **Python** (v3.10 or higher)
+* **Node.js** (v18 or higher)
+* **PostgreSQL** (running locally on port `5432` with a database named `safeher_db`)
 
-| Feature                    | Description                                            |
-| -------------------------- | ------------------------------------------------------ |
-| Route planning             | Enter source + destination via map click               |
-| Risk scoring               | Each route scored 0–100 using weighted safety factors |
-| Safer route recommendation | Lowest-risk route highlighted automatically            |
-| Live trip monitoring       | Simulated GPS movement along selected route            |
-| Route deviation detection  | Alert triggered if user moves >250m off route          |
-| Prolonged stop detection   | Alert if stationary >8 min during active trip          |
-| Safety check prompt        | 15-second countdown → auto-alert if no response       |
-| SOS button                 | Floating pulsing button sends alert instantly          |
-| Trusted contacts           | Add/edit/delete emergency contacts                     |
-| Alert history              | Full log of all SOS + auto alerts                      |
-| Trip history               | Past trips with route risk scores                      |
-| Nearby support             | Police, hospitals, pharmacies on map                   |
+### Backend Setup (FastAPI)
 
-### Admin-facing
+1. **Navigate to the backend directory and create a virtual environment:**
+   ```bash
+   cd backend
+   python -m venv venv
+   ```
 
-| Feature            | Description                                        |
-| ------------------ | -------------------------------------------------- |
-| Dashboard          | Users, trips, alerts, risk distribution KPIs       |
-| Risk zone CRUD     | Add/edit/delete geographic risk zones with scoring |
-| Support point CRUD | Manage emergency help locations                    |
-| Alert log          | All system alerts with status and location         |
+2. **Activate the virtual environment:**
+   * **Windows:**
+     ```bash
+     venv\Scripts\activate
+     ```
+   * **macOS/Linux:**
+     ```bash
+     source venv/bin/activate
+     ```
 
----
+3. **Install python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## Route Risk Scoring Engine
+4. **Configure Environment Variables:**
+   Create a `.env` file in the root of the `backend` folder (or set them in your terminal shell):
+   ```env
+   DATABASE_URL=postgresql://<user>:<password>@localhost:5432/safeher_db
+   SECRET_KEY=generate-a-secure-long-string-for-jwt-signing
+   ```
 
-Location: `backend/app/services/risk_engine.py`
+5. **Seed the database:**
+   Populate the database with a default administrator account, geographic risk zones, and hospital/police markers:
+   ```bash
+   python -m app.seed
+   ```
+   *Default Admin Login:* `admin@safeher.demo` / `Admin@12345`
 
-```
-Route Risk Score = (Risk Zone Score   × 0.35)
-                 + (Night Travel Score × 0.20)
-                 + (Isolation Score    × 0.20)
-                 + (Support Penalty    × 0.15)
-                 + (Exposure Duration  × 0.10)
-```
-
-| Score range | Label     |
-| ----------- | --------- |
-| 0–30       | Low risk  |
-| 31–60      | Moderate  |
-| 61–100     | High risk |
-
----
-
-## Technology Stack
-
-| Layer     | Technology                           |
-| --------- | ------------------------------------ |
-| Frontend  | React 18, React Router, Leaflet maps |
-| Styling   | Custom CSS (design tokens)           |
-| Backend   | FastAPI (Python 3.11)                |
-| Database  | PostgreSQL 16                        |
-| ORM       | SQLAlchemy 2                         |
-| Auth      | JWT (python-jose) + bcrypt           |
-| Maps      | OpenStreetMap + Leaflet              |
-| Container | Docker + Nginx                       |
+6. **Start the API Server:**
+   ```bash
+   uvicorn app.main:app --reload --port 8000
+   ```
+   The backend will be available at `http://localhost:8000` with documentation at `http://localhost:8000/docs`.
 
 ---
 
-## Limitations (by design)
+### Frontend Setup (React + Vite)
 
-- Does not detect crime directly or guarantee safety
-- Alert delivery (SMS/email) is simulated — plug in Twilio/SendGrid in `alert_service.py`
-- GPS tracking uses a simulated path in the demo; on a real mobile device, use the Geolocation API
-- Route geometry is synthesised (3 candidate paths); in production, call OSRM / OpenRouteService / Google Directions
+1. **Navigate to the frontend directory:**
+   ```bash
+   cd ../frontend
+   ```
+
+2. **Install Node packages:**
+   ```bash
+   npm install
+   ```
+
+3. **Run the Vite development server:**
+   ```bash
+   npm run dev
+   ```
+   Open `http://localhost:5173` in your browser. (The API calls will default to the local backend running on port `8000` unless `VITE_API_URL` is set).
 
 ---
 
-## Future Enhancements
+## Quick Start with Docker
 
-1. Voice-activated SOS
-2. Shake-phone trigger
-3. Community unsafe-location reporting
-4. Real SMS/email delivery (Twilio/SendGrid)
-5. Background mobile GPS tracking (React Native / Flutter)
-6. OSRM/Google Directions API for real road-following polylines
-7. ML-based route risk model trained on historical incident data
+To spin up the database, API server, and React client with a single command:
 
+1. Ensure **Docker Desktop** is running.
+2. In the project root directory, run:
+   ```bash
+   docker compose up --build
+   ```
+3. Access the frontend app at `http://localhost`.
+
+---
+
+## Route Risk Hashing & Scoring Engine
+
+The risk rating of any route generated by the platform is evaluated using a composite weighted index of safety-critical indicators.
+
+The overall risk index is calculated as:
+
+\[
+\text{Route Risk Score} = (R_{\text{zone}} \times 0.35) + (T_{\text{night}} \times 0.20) + (I_{\text{isolation}} \times 0.20) + (P_{\text{support}} \times 0.15) + (D_{\text{duration}} \times 0.10)
+\]
+
+### Scoring Weight Breakdown
+
+| Parameter | Weight | Description |
+| --- | --- | --- |
+| **Risk Zone Interaction ($R_{\text{zone}}$)** | 35% | Proximity and degree of overlap with administrator-defined high-risk boundaries. |
+| **Night Travel ($T_{\text{night}}$)** | 20% | Penalty applied if the trip occurs between 8:00 PM and 5:00 AM. |
+| **Isolation Coefficient ($I_{\text{isolation}}$)** | 20% | Factored by localized footfall density metrics. |
+| **Support Penalty ($P_{\text{support}}$)** | 15% | Distance to the nearest police outpost or hospital marker (lower distance reduces penalty). |
+| **Exposure Duration ($D_{\text{duration}}$)** | 10% | The duration of time the traveler is exposed on the route. |
+
+### Score Range Reference
+* **0–30:** Low Risk (Rendered in Green)
+* **31–60:** Moderate Risk (Rendered in Amber)
+* **61–100:** High Risk (Rendered in Red)
+
+---
+
+## Limitations & Future Roadmap
+
+* **Alert Delivery:** SMS and Email dispatches are simulated. In a production build, integrate Twilio (for SMS) and SendGrid (for emails) inside `backend/app/services/alert_service.py`.
+* **GPS simulation:** Active trips use simulated GPS coordinate steps. Real-world client integrations should utilize the browser Geolocation API or native mobile GPS hooks.
+* **Synthetic Routes:** Route pathways are synthesized into 3 candidate paths. For real road-following navigation, integrate routing backends like OSRM or the Google Directions API.
