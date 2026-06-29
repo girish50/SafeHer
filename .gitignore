@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+*.egg-info/
+dist/
+node_modules/
+.DS_Store
+*.db
+*.sqlite
+backend/test*.db
+frontend/dist/
+.vscode/
+.qodo/
