@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -28,9 +28,30 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(payload: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == payload.email).first()
-    if not user or not verify_password(payload.password, user.password_hash):
+async def login(request: Request, db: Session = Depends(get_db)):
+    content_type = request.headers.get("content-type", "")
+    email = None
+    password = None
+
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            email = body.get("email")
+            password = body.get("password")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+    elif "application/x-www-form-urlencoded" in content_type:
+        form_data = await request.form()
+        email = form_data.get("username")
+        password = form_data.get("password")
+    else:
+        raise HTTPException(status_code=415, detail="Unsupported media type")
+
+    if not email or not password:
+        raise HTTPException(status_code=422, detail="Missing email or password")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not verify_password(password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token({"sub": str(user.user_id), "type": "user"})
     return Token(access_token=token, user=UserOut.model_validate(user))

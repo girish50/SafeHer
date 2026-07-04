@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -18,9 +18,30 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
 @router.post("/login", response_model=AdminToken)
-def admin_login(payload: AdminLogin, db: Session = Depends(get_db)):
-    admin = db.query(Admin).filter(Admin.email == payload.email).first()
-    if not admin or not verify_password(payload.password, admin.password_hash):
+async def admin_login(request: Request, db: Session = Depends(get_db)):
+    content_type = request.headers.get("content-type", "")
+    email = None
+    password = None
+
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            email = body.get("email")
+            password = body.get("password")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+    elif "application/x-www-form-urlencoded" in content_type:
+        form_data = await request.form()
+        email = form_data.get("username")
+        password = form_data.get("password")
+    else:
+        raise HTTPException(status_code=415, detail="Unsupported media type")
+
+    if not email or not password:
+        raise HTTPException(status_code=422, detail="Missing email or password")
+
+    admin = db.query(Admin).filter(Admin.email == email).first()
+    if not admin or not verify_password(password, admin.password_hash):
         raise HTTPException(status_code=401, detail="Invalid admin credentials")
     token = create_access_token({"sub": str(admin.admin_id), "type": "admin"})
     return AdminToken(access_token=token, admin=AdminOut.model_validate(admin))
